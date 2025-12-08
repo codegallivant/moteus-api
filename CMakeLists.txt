@@ -16,7 +16,17 @@ add_executable(read
 )
 target_link_libraries(read PRIVATE Threads::Threads)
 
+add_executable(constant_acceleration_trajectory
+    tests/constant_acceleration_trajectory.cpp
+)
+target_link_libraries(constant_acceleration_trajectory PRIVATE Threads::Threads)
+
 add_executable(velocity_control
     tests/velocity_control.cpp
 )
 target_link_libraries(velocity_control PRIVATE Threads::Threads)
+
+add_executable(torque_control
+    tests/torque_control.cpp
+)
+target_link_libraries(torque_control PRIVATE Threads::Threads)

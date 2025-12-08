@@ -77,6 +77,8 @@ public:
                 cmd.accel_limit = value;
             } else if(it->first == "watchdog_timeout") {
                 cmd.watchdog_timeout = value;
+            } else {
+                std::cout << "WARNING: Unrecognized keyword " << it->first << std::endl;
             }
         }
     }
@@ -153,6 +155,10 @@ public:
                 res.velocity_limit = mjbots::moteus::Resolution::kFloat;
             } else if (it->first == "accel_limit") {
                 res.accel_limit = mjbots::moteus::Resolution::kFloat;
+            } else if (it->first == "ilimit_scale") {
+                res.ilimit_scale = mjbots::moteus::Resolution::kFloat;
+            } else {
+                std::cout << "WARNING: Unrecognized keyword " << it->first << std::endl;
             }
         }
         auto result = this->controller->SetPosition(createCommand(state), &res, &q_com);  
@@ -182,6 +188,22 @@ public:
         return true;
     }
 
+    bool writeDuration(motor_state state, motor_state& responseState, int duration_ms, int interval_ms) {
+        auto start_time = std::chrono::high_resolution_clock::now();
+        bool status;
+        while (true) {
+            auto current_time = std::chrono::high_resolution_clock::now();
+            auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time);
+            if (elapsed_time.count() >= duration_ms) {
+                // std::cout << "Finished after " << elapsed_time.count() << " milliseconds." << std::endl;
+                break;
+            }
+            status = this->write(state, responseState);
+            // std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
+        }
+        return status;
+    }
+
     static void displayState(const std::unordered_map<std::string, std::optional<double>>& m) {
         std::cout << "\nmotor_state" << std::endl;
         for (const auto& [key, opt_val] : m) {
@@ -193,5 +215,10 @@ public:
             }
             std::cout << "\n";
         }
+    }
+
+    ~MoteusDriverController() {
+        // std::cout << "Destructor Called" << std::endl;
+        this->controller->SetStop();
     }
 };
