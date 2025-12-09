@@ -249,7 +249,7 @@ public:
     }
 
     static void displayState(const std::unordered_map<std::string, std::optional<double>>& m) {
-        std::cout << "\nmotor_state" << std::endl;
+        std::cout << "motor_state" << std::endl;
         for (const auto& [key, opt_val] : m) {
             std::cout << key << ": ";
             if (opt_val.has_value()) {

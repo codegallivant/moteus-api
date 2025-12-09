@@ -11,6 +11,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Extra args to pass to all sub-tests (for Moteus transport/controller)
+# NOTE: This can now include a space-separated list of IDs in a single
+#       quoted argument, e.g. --moteus-id "1 2 3"
 MOTEUS_ARGS=()
 
 # Format: "Test Name:binary_name arguments"
@@ -18,7 +20,7 @@ tests=(
   "Read:read --duration-ms 10000"
   "Velocity Control:write --position nan --velocity 2.0 --duration-ms 5000 --kp-scale 0.1 --kd-scale 0.1"
   "Constant Acceleration Trajectory:write --position 1.0 --velocity 0.0 --accel-limit 2.0 --velocity-limit 0.5 --duration-ms 5000 --kp-scale 0.1 --kd-scale 0.1"
-  "Torque Control:write --velocity 0.0 --kp-scale 0.0 --kd-scale 0.0 --ilimit-scale 0.0 --feedforward-torque 0.1 --duration-ms 1000 --kp-scale 0.1 --kd-scale 0.1"
+  "Torque Control:write --velocity 0.0 --kp-scale 0.0 --kd-scale 0.0 --ilimit-scale 0.0 --feedforward-torque 0.1 --duration-ms 1000"
 )
 
 usage() {
@@ -28,19 +30,32 @@ Usage: $0 [moteus-options...] [pattern]
 Run all test binaries from ${TEST_BIN_DIR}.
 
 Moteus options (forwarded to all sub-tests):
-  --moteus-id <id>                 Controller ID
+  --moteus-id "<id1> [id2 ...]"    Controller ID(s); space-separated, MUST be quoted
   --socketcan-iface <iface>        SocketCAN interface (e.g. can0)
   --socketcan-ignore-errors <n>    Ignore SocketCAN errors flag
   --can-disable-brs <n>            Disable CAN BRS flag
+
+The --moteus-id value is passed verbatim to the C++ programs, which
+will instantiate one controller per ID and run the commands on all of them.
 
 Optional:
   pattern   Only run tests whose name or binary matches this substring.
 
 Examples:
-  $0                                           # run all tests
-  $0 torque                                   # run only torque-related tests
-  $0 --moteus-id 2 --socketcan-iface can1     # all tests on ID=2 via can1
-  $0 --moteus-id 3 torque                     # torque tests on ID=3
+  $0
+      # run all tests on default moteus-id (from the binaries, typically 1)
+
+  $0 torque
+      # run only torque-related tests on default moteus-id
+
+  $0 --moteus-id "1 2 3" --socketcan-iface can0
+      # all tests on IDs 1,2,3 via can0 (each C++ program will control 3 controllers)
+
+  $0 --moteus-id "3 4" torque
+      # torque tests only, on moteus IDs 3 and 4
+
+  $0 --moteus-id "1 2" --socketcan-iface can1 read
+      # only "Read" test, on IDs 1 and 2 via can1
 EOF
 }
 
@@ -65,6 +80,8 @@ run_test() {
   fi
 
   # Run the binary path with its arguments + global MOTEUS_ARGS
+  # NOTE: MOTEUS_ARGS may contain something like: --moteus-id "1 2 3"
+  # which is seen by the C++ program as a single argument "1 2 3".
   if "$bin_path" "${cmd_parts[@]:1}" "${MOTEUS_ARGS[@]}"; then
     echo -e "${GREEN}==== EXECUTED : ${name} ====${NC}"
   else
@@ -91,6 +108,8 @@ main() {
           echo -e "${RED}Missing value for option:${NC} $1"
           exit 1
         fi
+        # Push option name and its value verbatim into MOTEUS_ARGS.
+        # For --moteus-id, the value may be a quoted string with spaces.
         MOTEUS_ARGS+=("$1" "$2")
         shift 2
         ;;

@@ -4,9 +4,11 @@
 #include <memory>
 #include <optional>
 #include <csignal>
+#include <sstream>
+#include <chrono>
+
 #include "api/moteus_driver_controller.hpp"
 #include "lib/cxxopts.hpp"
-
 
 void signalHandler(int signum) {
     MoteusDriverController::destroyAll();
@@ -39,7 +41,7 @@ int main(int argc, char** argv) {
         ("voltage", "Read Voltage")
 
         // transport args
-        ("moteus-id", "Moteus ID", cxxopts::value<int>()->default_value("1"))
+        ("moteus-id", "Moteus ID(s)", cxxopts::value<std::string>()->default_value("1"))
         ("socketcan-iface", "SocketCAN Interface", cxxopts::value<std::string>()->default_value("can0"))
         ("socketcan-ignore-errors", "Ignore SocketCAN errors", cxxopts::value<int>()->default_value("0"))
         ("can-disable-brs", "Disable CAN BRS (bit-rate switching)", cxxopts::value<int>()->default_value("0"))
@@ -56,17 +58,46 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    int moteus_id = result["moteus-id"].as<int>();
+    // Parse moteus-id as space separated list of ints
+    std::string moteus_id_str = result["moteus-id"].as<std::string>();
+    std::istringstream id_stream(moteus_id_str);
+    std::vector<int> moteus_ids;
+    int id_val;
+    while (id_stream >> id_val) {
+        moteus_ids.push_back(id_val);
+    }
+
+    if (moteus_ids.empty()) {
+        std::cerr << "No valid moteus IDs provided." << std::endl;
+        return 1;
+    }
+
     std::string socketcan_iface = result["socketcan-iface"].as<std::string>();
     int socketcan_ignore_errors = result["socketcan-ignore-errors"].as<int>();
     int socketcan_disable_brs = result["can-disable-brs"].as<int>();
 
-    MoteusDriverController* mc = MoteusDriverController::create(
-        moteus_id,
-        socketcan_iface,
-        socketcan_ignore_errors,
-        socketcan_disable_brs
-    );
+    struct ControllerEntry {
+        int id;
+        MoteusDriverController* mc;
+    };
+
+    std::vector<ControllerEntry> controllers;
+    controllers.reserve(moteus_ids.size());
+
+    // Instantiate K controllers
+    for (int mid : moteus_ids) {
+        MoteusDriverController* mc = MoteusDriverController::create(
+            mid,
+            socketcan_iface,
+            socketcan_ignore_errors,
+            socketcan_disable_brs
+        );
+        if (!mc) {
+            std::cerr << "Failed to create controller for moteus ID " << mid << std::endl;
+            return 1;
+        }
+        controllers.push_back({mid, mc});
+    }
 
     MoteusDriverController::motor_state readState;
 
@@ -95,44 +126,55 @@ int main(int argc, char** argv) {
 
     if (readState.empty()) {
         readState["position"] = std::nullopt;
-        // readState["velocity"] = std::nullopt;
-        // readState["torque"] = std::nullopt;
-        // readState["temperature"] = std::nullopt;
-        // readState["voltage"] = std::nullopt;
     }
 
     std::cout << "Sending query..." << std::endl;
 
-    if(result.count("duration-ms")) {
-        auto start_time = std::chrono::high_resolution_clock::now();
-        bool status = false;
-        int count = 0;
-        int elapsed_time_count = 0;
+    // auto q_com = controllers.front().mc->getReadFormat(readState);
+    if (result.count("duration-ms")) {
+        auto duration_ms = result["duration-ms"].as<int>();
+        int total_successful_queries = 0;
+        int elapsed_ms = 0;
         while (true) {
-            if (elapsed_time_count >= result["duration-ms"].as<int>()) {
+            if (elapsed_ms >= duration_ms) {
                 break;
             }
-            auto start_time = std::chrono::high_resolution_clock::now();
-            status = mc->read(readState);
-            auto end_time = std::chrono::high_resolution_clock::now();
-            if(status) {
-                count++;
-            } else {
-                return 0;
+            for (auto& entry : controllers) {
+                auto start_time = std::chrono::high_resolution_clock::now();
+                auto result_q = entry.mc->read(readState); 
+                // const auto result_q = entry.mc->controller->SetQuery(&q_com);
+                auto end_time = std::chrono::high_resolution_clock::now();
+                int this_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                elapsed_ms += this_duration;
+
+                if (!result_q) {
+                    std::cerr << "Read failed for moteus ID " << entry.id << std::endl;
+                    return 1;
+                } else {
+                    total_successful_queries++;
+                }
             }
-
-            auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-            elapsed_time_count += elapsed_time.count();
         }
-        std::cout <<  "Frequency (successful reads per second): " << count/(static_cast<double>(elapsed_time_count)/1000) << std::endl;
-    }
-    bool status = mc->read(readState);
-    if(status) {
-        MoteusDriverController::displayState(readState);
-    } else {
-        std::cerr << "Failed to read" << std::endl;
-        return 1;
+
+        double elapsed_sec = static_cast<double>(elapsed_ms) / 1000.0;
+
+        std::cout << "Frequency (successful reads per second across all controllers): "
+                  << (elapsed_sec > 0.0 ? total_successful_queries / elapsed_sec : 0.0)
+                  << std::endl;
     }
 
-    return 0;
+    // Final read from all controllers one after the other
+    bool overall_status = true;
+    for (const auto& entry : controllers) {
+        bool status = entry.mc->read(readState);
+        if (status) {
+            std::cout << "\n=== Moteus ID " << entry.id << " ===" << std::endl;
+            MoteusDriverController::displayState(readState);
+        } else {
+            std::cerr << "Failed to read from moteus ID " << entry.id << std::endl;
+            overall_status = false;
+        }
+    }
+
+    return overall_status ? 0 : 1;
 }
