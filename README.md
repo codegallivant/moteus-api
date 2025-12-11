@@ -3,7 +3,7 @@
 C++ API to read and write data with moteus servo controllers. Layered over moteus drivers.
 
 ## Library Usage
-Examples can be found in `examples/`.
+See`examples/`.
 ```cpp
 // Example implementing read operations and velocity control on 2 controllers
 
@@ -81,7 +81,7 @@ This will run read, velocity control, constant acceleration trajectory and torqu
 ![example tests output](docs/assets/image.png)
 3. Further, you can send custom read/write commands via CLI
 ```bash
-cd build
+cd build/tests/
 ./read --help 
 ./write --help
 ```
