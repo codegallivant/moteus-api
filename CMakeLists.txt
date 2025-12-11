@@ -13,9 +13,17 @@ find_package(Threads REQUIRED)
 
 add_executable(read
     tests/read.cpp
+    moteus_api/moteus_api.cpp
 )
 target_link_libraries(read PRIVATE Threads::Threads)
 
 add_executable(write
     tests/write.cpp
+    moteus_api/moteus_api.cpp
 )
+
+# add_executable(load
+#     scripts/load.cpp
+#     moteus_api/moteus_api.cpp
+# )
+
