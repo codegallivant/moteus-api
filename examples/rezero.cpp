@@ -48,8 +48,12 @@ int main() {
 
     // Rezero
     std::cout << "Setting zero offset.." << std::endl;
-    controller->setZeroOffset();
-
+    bool status = controller->setZeroOffset();
+    if(status) {
+        std::cout << "Success" << std::endl;
+    } else {
+        std::cout << "Failed" << std::endl;
+    }
     std::cout << std::endl;
 
     // Read operation on controller

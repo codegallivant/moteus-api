@@ -220,7 +220,7 @@ namespace MoteusAPI {
 
         std::string diagnosticCommand(std::string);
 
-        void setZeroOffset();
+        bool setZeroOffset();
 
         void configureSafety(double max_motor_current, double max_moteus_current = 12, double max_d_current = 5, double violation_limit_ms = 100);
 

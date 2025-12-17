@@ -400,11 +400,16 @@ void Controller::writeDuration(const CommandState& cs, int duration_ms, bool saf
 }
 
 std::string Controller::diagnosticCommand(std::string message) {
-   return this->internal_controller->DiagnosticCommand(message);
+   return this->internal_controller->DiagnosticCommand(message, mjbots::moteus::Controller::kExpectSingleLine);
 }
 
-void Controller::setZeroOffset() {
+bool Controller::setZeroOffset() {
     std::string output = this->diagnosticCommand("d rezero");
+    bool status = output == "OK";
+    if(!status) {
+        std::cout << output << std::endl;
+    }
+    return status;
 }
 
 } // namespace MoteusAPI
