@@ -4,5 +4,5 @@ add_library(moteus_api STATIC
 
 target_include_directories(moteus_api
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
 )

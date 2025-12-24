@@ -4,8 +4,8 @@ project(MoteusAPI VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(BUILD_EXAMPLES "Build example executables" ON)
-option(BUILD_TESTS    "Build test executables"    ON)
+option(BUILD_EXAMPLES "Build example executables" OFF)
+option(BUILD_TESTS    "Build test executables"    OFF)
 option(BUILD_SCRIPTS  "Build custom script executables" OFF)
 
 # Helper to set per-target runtime dir
@@ -31,4 +31,3 @@ endif()
 if(BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
-

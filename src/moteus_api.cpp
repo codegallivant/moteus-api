@@ -90,6 +90,8 @@ void CommandState::calculateCommand() {
         auto value = *valueMap[key];
         if (value.has_value()) {
             *cmdPtr = value.value();
+        } else {
+            *cmdPtr = std::numeric_limits<double>::quiet_NaN();
         }
     }
 }
