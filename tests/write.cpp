@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <chrono>
 
-#include "moteus/api/moteus_api.hpp"
+#include "moteus_api.hpp"
 #include "cxxopts.hpp"
 
 void signalHandler(int) {

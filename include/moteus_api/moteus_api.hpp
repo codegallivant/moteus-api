@@ -1,7 +1,7 @@
 #pragma once
 
-#include "moteus/drivers/moteus.h"
-#include "moteus/api/moteus_api.hpp"
+#include "moteus.h"
+#include "moteus_api.hpp"
 
 #include <unordered_map>
 #include <memory>

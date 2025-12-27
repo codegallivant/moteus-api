@@ -7,7 +7,7 @@ See`examples/`.
 ```cpp
 // Example implementing read operations and velocity control on 2 controllers
 
-#include "moteus/api/moteus_api.hpp" // Make sure to have the relevant moteus_api.hpp, moteus_api.cpp and moteus drivers present at appropriate paths
+#include "moteus_api.hpp" // Make sure to have the relevant moteus_api.hpp, moteus_api.cpp and moteus drivers present at appropriate paths
 #include <csignal>
 #include <chrono>
 

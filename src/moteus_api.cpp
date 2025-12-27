@@ -1,4 +1,4 @@
-#include "moteus/api/moteus_api.hpp"
+#include "moteus_api.hpp"
 
 namespace MoteusAPI {
 
